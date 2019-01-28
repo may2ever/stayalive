@@ -5,13 +5,16 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 import org.quartz.SchedulerException;
-import org.quartz.TriggerKey;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
+
 import com.stay.alive.auction.dutch.mapper.DutchauctionMapper;
 import com.stay.alive.auction.dutch.vo.DutchAuction;
-
+@Component
 public class DutchAuctionRegisterJob extends QuartzJobBean {
+
 	@Override
 	protected void executeInternal(JobExecutionContext context) throws JobExecutionException {
 		//System.out.println(context.getJobDetail().getKey().getName());;
@@ -38,5 +41,7 @@ public class DutchAuctionRegisterJob extends QuartzJobBean {
 				e.printStackTrace();
 			}
 		}
+		SimpMessagingTemplate simpMessagingTemplate = (SimpMessagingTemplate)jobDataMap.get("simpMessagingTemplate");
+		simpMessagingTemplate.convertAndSend("/dutch/auction", "call");
 	}
 }

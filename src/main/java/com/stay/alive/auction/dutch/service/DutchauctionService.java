@@ -23,6 +23,7 @@ import org.quartz.SimpleScheduleBuilder;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,8 @@ import com.stay.alive.guestroom.vo.GuestRoom;
 @Service
 @Transactional
 public class DutchauctionService {
+	@Autowired 
+	SimpMessagingTemplate simpMessagingTemplate;
 	@Autowired
 	private ImageFileMapper imageFileMapper;
 	@Autowired
@@ -59,6 +62,7 @@ public class DutchauctionService {
 		JobDataMap jabDataMap = new JobDataMap();
 		jabDataMap.put("dutchAuction", dutchAuction);
 		jabDataMap.put("dutchauctionMapper", dutchauctionMapper);
+		jabDataMap.put("simpMessagingTemplate", simpMessagingTemplate);
 		return JobBuilder.newJob(DutchAuctionRegisterJob.class).withIdentity("registerJob"+ dutchAuction.getDutchauctionNo())
 				.usingJobData(jabDataMap).storeDurably().build();
 	}

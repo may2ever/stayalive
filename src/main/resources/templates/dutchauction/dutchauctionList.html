@@ -113,7 +113,7 @@
 					<section class="rooms-area section-padding-0-0">
 						<div class="container" >
 							<div class="row" id="listRoomsArea">
-								<!-- Single Rooms Area -->
+								<!-- Rooms Area -->
 								
 							</div>
 							<div class="col-12" >
@@ -139,7 +139,7 @@
 							</div>
 						</div>
 					</section>
-						<!-- ##### Auction Area End ##### -->
+					<!-- ##### Auction Area End ##### -->
 	
 					<!-- ##### ClosedAuction Area Start ##### -->
 					<section class="rooms-area section-padding-0-0" id="close">
@@ -180,9 +180,10 @@
     <!-- datepicker js  -->
     <script src="/datepicker/js/datepicker.js"></script>
     <script src="/datepicker/js/i18n/datepicker.en.js"></script>
+	<script src="/webjars/sockjs-client/1.1.2/sockjs.min.js"></script>
+	<script src="/webjars/stomp-websocket/2.3.3-1/stomp.min.js"></script>
 	<script th:inline="javascript">
-	
-		$(function() {
+		$(document).ready(function() {
 			$("#dutchauctionList").addClass('active');
 			//Datepicker
 			$('#checkInDate').datepicker({
@@ -191,25 +192,38 @@
 			    timeFormat:'hh:ii',
 				autoClose:true
 			});
+			
+			//웹소켓 설정
+		    var socket = new SockJS('/ws');
+		    stompClient = Stomp.over(socket);
+		    stompClient.debug = null; //디버그 내용 콘솔 출력
+		    stompClient.connect({}, function (frame) {
+		        stompClient.subscribe('/dutch/auction', function (data) {
+		        	//잡이 실행될때마다 호출
+		        	renderCurrentList(currentPage, searchKey, searchWord,checkInDate ,checkOutDate);
+		        	//console.log(data.body);
+		        });
+		    });
+
 			var select = false;
-			var checkInDate = $('#checkInDate');
-			var checkOutDate = $('#checkOutDate');
-			checkOutDate.click(function() {
-				if(checkInDate.val() == "") {
+			var checkIn = $('#checkInDate');
+			var checkOut = $('#checkOutDate');
+			checkOut.click(function() {
+				if(checkIn.val() == "") {
 					alert("입실 일자를 선택해 주세요");
 				}
 				else {
 					if(!select) {
 						select = true;
-						checkOutDate.datepicker({
+						checkOut.datepicker({
 						    language: 'en',
 						    dateFormat:'yyyy-mm-dd',
 						    timeFormat:'hh:ii',
-						    minDate: new Date(checkInDate.val()),
+						    minDate: new Date(checkIn.val()),
 							autoClose:true,
 							Defaults : "focus"
 						});
-						checkOutDate.datepicker().data('datepicker').show();
+						checkOut.datepicker().data('datepicker').show();
 					}
 				}
 			});	
@@ -219,21 +233,21 @@
 			$("#searchSelect").change(function() {
 				if($("#searchSelect").val() == "0") {
 					$("#search").attr("disabled",true);
-					checkInDate.attr("disabled",false);
-					checkOutDate.attr("disabled",false);
+					checkIn.attr("disabled",false);
+					checkOut.attr("disabled",false);
 				}
 				else {
 					$("#search").attr("disabled",false);
-					checkInDate.val("");
-					checkOutDate.val("");
-					checkInDate.attr("disabled",true);
-					checkOutDate.attr("disabled",true);
+					checkIn.val("");
+					checkOut.val("");
+					checkIn.attr("disabled",true);
+					checkOut.attr("disabled",true);
 				}
 			})
 			//종료된 경매 리스트 처음에는 보이지 않게
 			$("#close").hide();
 			var closeSwitch = false;
-			$("#closeBtn").click(function() {//버튼 클릭시 종료된 경매 리스트 show/hide
+			$("#closeBtn").click(function() { //버튼 클릭시 종료된 경매 리스트 show/hide
 				if(!closeSwitch) {
 					closeSwitch = true;
 					$("#close").show();
@@ -243,19 +257,17 @@
 					$("#close").hide();
 				}
 			});
-			closedutchauctionList(1, true); //페이지 최초 로딩시 종료된 경매 리스트 추가
 			var currentPage = [[${currentPage}]];
 			var searchKey = [[${searchKey}]];
 			var searchWord = [[${searchWord}]];
 			var checkInDate = [[${checkInDate}]];
 			var checkOutDate = [[${checkOutDate}]];
-			var currentlist = [[${list}]];
-			var interval;
-			if(currentlist.length != 0) {
-				initCurrentList(currentPage, searchKey, searchWord,checkInDate ,checkOutDate);
-				currentList(currentPage, searchKey, searchWord, checkInDate, checkOutDate);
-			}
-		});	
+			var currentList = [[${list}]];
+			render(currentList);
+			closeDutchauctionList(1, true); //페이지 최초 로딩시 종료된 경매 리스트 추가
+			
+		});
+		
 		function render(currentList) {
 			var list = ""
 				$.each(currentList, function(index,item) {
@@ -281,7 +293,7 @@
 				});
 				$("#listRoomsArea").html(list);
 		}
-		function initCurrentList(currentPage, searchKey, searchWord,checkInDate ,checkOutDate) {
+		function renderCurrentList(currentPage, searchKey, searchWord, checkInDate, checkOutDate) {
 			$.ajax({
 				url:"currentList",
 				method:"get",
@@ -296,26 +308,7 @@
 				}
 			});
 		}
-		//Ajax를 이용한 현재 경매 진행중인 리스트
-		function currentList(currentPage, searchKey, searchWord,checkInDate ,checkOutDate) {
-			setTimeout(function() {
-				$.ajax({
-					url:"currentList",
-					method:"get",
-					data:{"currentPage": currentPage, 
-						  "searchKey" : searchKey,
-						  "searchKey" : searchWord,
-						  "checkInDate" : checkInDate,
-						  "checkOutDate" : checkOutDate},
-					contentType :"application/x-www-form-urlencoded",
-					success:function(data) {
-						render(data);
-						currentList(currentPage, searchKey, searchWord, checkInDate, checkOutDate);
-					}
-				});
-			},2000);
-		}
-		function closedutchauctionList(currentPage, isFirstPage) { //Ajax를 이용한 종료된 경매 리스트 + 페이징
+		function closeDutchauctionList(currentPage, isFirstPage) { //Ajax를 이용한 종료된 경매 리스트 + 페이징
 			$.ajax({
 				url:"closedlist",
 				method:"get",
@@ -352,7 +345,7 @@
 					if(data.PM.prevPage) {
 						var prevPage = (data.PM.currentBlock - 1) * data.PM.pagePerBlock;
 						pager += "<li class='page-item'>";
-						pager += "<a class='page-link' href='javascript:closedutchauctionList("+ prevPage +", false)'>이전</a>";
+						pager += "<a class='page-link' href='javascript:closeDutchauctionList("+ prevPage +", false)'>이전</a>";
 						pager += "</li>";
 					}
 					for(var i = data.PM.startPage; i <= data.PM.endPage; i++) {
@@ -362,13 +355,13 @@
 						else {
 							pager += "<li class='page-item'>";
 						}
-						pager += "<a class='page-link' href='javascript:closedutchauctionList("+ i +", false)'>"+ i +"</a>";
+						pager += "<a class='page-link' href='javascript:closeDutchauctionList("+ i +", false)'>"+ i +"</a>";
 						pager += "</li>";
 					}
 					if(data.PM.nextPage) {
 						var nextPage = data.PM.currentBlock * data.PM.pagePerBlock + 1
 						pager += "<li class='page-item'>";
-						pager += "<a class='page-link' href='javascript:closedutchauctionList("+ nextPage +", false)'>다음</a>";
+						pager += "<a class='page-link' href='javascript:closeDutchauctionList("+ nextPage +", false)'>다음</a>";
 						pager += "</li>";
 					}
 					$("#roomArea").html(list);

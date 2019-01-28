@@ -5,6 +5,7 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 import org.quartz.SchedulerException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 
 import com.stay.alive.auction.dutch.mapper.DutchauctionMapper;
@@ -29,7 +30,8 @@ public class DutchAuctionCloseJob extends QuartzJobBean{
 		dutchAuction.setAuctionStateCategoryNo(4);
 		dutchAuction.setAuctionStateCategoryName("만료");
 		dutchauctionMapper.updateStateCategory(dutchAuction); //데이터베이스에서 카테고리 업데이트
-		
+		SimpMessagingTemplate simpMessagingTemplate = (SimpMessagingTemplate)jobDataMap.get("simpMessagingTemplate");
+		simpMessagingTemplate.convertAndSend("/dutch/auction", "call");
 	}
 
 }
