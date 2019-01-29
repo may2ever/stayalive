@@ -8,6 +8,10 @@ import javax.servlet.http.HttpSession;
 
 import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.stay.alive.auction.dutch.service.DutchauctionService;
 import com.stay.alive.auction.dutch.vo.DutchAuction;
 import com.stay.alive.common.PageMaker;
@@ -25,6 +31,8 @@ import com.stay.alive.guestroom.vo.GuestRoom;
 @Controller
 @RequestMapping("auction/dutch")
 public class DutchauctionController {
+	@Autowired 
+	private SimpMessagingTemplate simpMessagingTemplate;
 	@Autowired
 	private DutchauctionService dutchauctionService;
 	@GetMapping("list")
@@ -173,23 +181,30 @@ public class DutchauctionController {
 		map.put("PM", pageMaker);
 		return map;
 	}
-	@GetMapping("currentList")
-	public @ResponseBody ArrayList<Map<String, Object>> realTimeList( 
-			   @RequestParam(defaultValue = "1")int currentPage,
-			   @RequestParam(defaultValue = "") String searchKey, 
-			   @RequestParam(defaultValue = "") String searchWord,
-			   @RequestParam(defaultValue = "") String checkInDate,
-			   @RequestParam(defaultValue = "") String checkOutDate)
-	{
-	PageMaker pageMaker = new PageMaker();
-	pageMaker.setCurrentPage(currentPage);
-	ArrayList<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-	if((!searchKey.equals("") && !searchKey.equals("0")) || (!checkInDate.equals("") && !checkOutDate.equals(""))) {
-		list = dutchauctionService.getDutchAuctionSearchList(pageMaker, searchKey, searchWord, checkInDate, checkOutDate);
-	}
-	else {
-		list = dutchauctionService.getDutchAuctionList(pageMaker);
-	}
-	return list;
+	//웹소켓을 이용한 리스트 갱신
+	@MessageMapping("/call")
+	public void currentList(@RequestParam("jsonString") String jsonString) {
+		JsonParser parser = new JsonParser();
+		JsonElement element = parser.parse(jsonString);
+		int currentPage = element.getAsJsonObject().get("currentPage").getAsInt();
+		String searchKey = element.getAsJsonObject().get("searchKey").getAsString();
+		String searchWord = element.getAsJsonObject().get("searchWord").getAsString();
+		String checkInDate = element.getAsJsonObject().get("checkInDate").getAsString();
+		String checkOutDate = element.getAsJsonObject().get("checkOutDate").getAsString();
+		PageMaker pageMaker = new PageMaker();
+		pageMaker.setCurrentPage(currentPage);
+		ArrayList<Map<String, Object>> list = null;
+		if(!searchKey.equals("") && !searchKey.equals("0")) {
+			list = dutchauctionService.getDutchAuctionSearchList(pageMaker, searchKey, searchWord, checkInDate, checkOutDate);
+			simpMessagingTemplate.convertAndSend("/dutch/" + currentPage + "/" + searchKey + "/" + searchWord, list);
+		}
+		else if(!checkInDate.equals("") && !checkOutDate.equals("")) {
+			list = dutchauctionService.getDutchAuctionSearchList(pageMaker, searchKey, searchWord, checkInDate, checkOutDate);
+			simpMessagingTemplate.convertAndSend("/dutch/" + currentPage + "/" + checkInDate + "/" + checkOutDate, list);
+		}
+		else {
+			list = dutchauctionService.getDutchAuctionList(pageMaker);
+			simpMessagingTemplate.convertAndSend("/dutch/" + currentPage, list);
+		}
 	}
 }

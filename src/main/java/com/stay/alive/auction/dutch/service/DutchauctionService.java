@@ -18,6 +18,7 @@ import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
+import org.quartz.SchedulerContext;
 import org.quartz.SchedulerException;
 import org.quartz.SimpleScheduleBuilder;
 import org.quartz.Trigger;
@@ -27,8 +28,11 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.stay.alive.accommodation.mapper.AccommodationMapper;
 import com.stay.alive.auction.dutch.mapper.DutchauctionMapper;
 import com.stay.alive.auction.dutch.vo.DutchAuction;
@@ -45,7 +49,7 @@ import com.stay.alive.guestroom.vo.GuestRoom;
 @Transactional
 public class DutchauctionService {
 	@Autowired 
-	SimpMessagingTemplate simpMessagingTemplate;
+	private SimpMessagingTemplate simpMessagingTemplate;
 	@Autowired
 	private ImageFileMapper imageFileMapper;
 	@Autowired
@@ -101,6 +105,12 @@ public class DutchauctionService {
 	}
 	public void addDutchAuctionScheduler(DutchAuction dutchAuction) {
 		Scheduler scheduler = schedulerFactoryBean.getScheduler();
+		try {
+			scheduler.getContext().put("test", "test1");
+		} catch (SchedulerException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		JobDetail registerjobDetail = registerJobDetail(dutchAuction);
 		Trigger  registertrigger = registerJobTrigger(dutchAuction);
 		JobDetail closejobDetail = closeJobDetail(dutchAuction);

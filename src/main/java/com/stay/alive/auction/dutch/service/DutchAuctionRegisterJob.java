@@ -1,18 +1,19 @@
 package com.stay.alive.auction.dutch.service;
 
 import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
+import org.quartz.SchedulerContext;
 import org.quartz.SchedulerException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.quartz.QuartzJobBean;
-import org.springframework.stereotype.Component;
 
 import com.stay.alive.auction.dutch.mapper.DutchauctionMapper;
 import com.stay.alive.auction.dutch.vo.DutchAuction;
-@Component
+import com.stay.alive.common.PageMaker;
+
 public class DutchAuctionRegisterJob extends QuartzJobBean {
 
 	@Override
@@ -42,6 +43,6 @@ public class DutchAuctionRegisterJob extends QuartzJobBean {
 			}
 		}
 		SimpMessagingTemplate simpMessagingTemplate = (SimpMessagingTemplate)jobDataMap.get("simpMessagingTemplate");
-		simpMessagingTemplate.convertAndSend("/dutch/auction", "call");
+		simpMessagingTemplate.convertAndSend("/dutch/auction/", "call");
 	}
 }
