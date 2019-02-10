@@ -182,7 +182,7 @@ public class DutchauctionController {
 		return map;
 	}
 	//웹소켓을 이용한 리스트 갱신
-	@MessageMapping("/call")
+	@MessageMapping("/currentList")
 	public void currentList(@RequestParam("jsonString") String jsonString) {
 		JsonParser parser = new JsonParser();
 		JsonElement element = parser.parse(jsonString);

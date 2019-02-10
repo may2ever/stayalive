@@ -205,7 +205,7 @@
 		    stompClient.connect({}, function (frame) {
 		    	//잡이 실행될때마다 호출
 		        stompClient.subscribe('/dutch/auction/', function() {
-		        	stompClient.send("/auction/call", {}, JSON.stringify({currentPage, searchKey, searchWord, checkInDate, checkOutDate})); 
+		        	stompClient.send("/auction/currentList", {}, JSON.stringify({currentPage, searchKey, searchWord, checkInDate, checkOutDate})); 
 		        });
 		        //키워드로 검색했을때
 		        stompClient.subscribe('/dutch/'+ currentPage + '/' + searchKey + '/' + searchWord, function(data) {
